@@ -13,29 +13,57 @@ public class WorkOrderDao {
     private final JdbcTemplate jdbc;
     public WorkOrderDao(JdbcTemplate jdbc) { this.jdbc = jdbc; }
 
-    private static final RowMapper<WorkOrder> MAPPER = (rs, i) -> new WorkOrder(
-            rs.getLong("id"), rs.getString("work_order_no"), rs.getString("product_type"),
-            rs.getInt("target_qty"), rs.getString("status"),
-            rs.getObject("created_at", LocalDateTime.class),
-            rs.getObject("started_at", LocalDateTime.class),
-            rs.getObject("stopped_at", LocalDateTime.class),
-            rs.getObject("target_reached_at", LocalDateTime.class),
-            rs.getObject("completed_at", LocalDateTime.class),
-            rs.getObject("updated_at", LocalDateTime.class));
+    private static final RowMapper<WorkOrder> MAPPER = (rs, rowNum) -> new WorkOrder(
+            rs.getLong("id"),
+            rs.getString("work_order_no"),
+            rs.getString("product_type"),
+            rs.getInt("target_qty"),
+            rs.getInt("good_qty"),      // ← 추가!
+            rs.getInt("defect_qty"),    // ← 추가!
+            rs.getString("status"),
+            rs.getTimestamp("started_at") != null ? rs.getTimestamp("started_at").toLocalDateTime() : null,
+            rs.getTimestamp("stopped_at") != null ? rs.getTimestamp("stopped_at").toLocalDateTime() : null,
+            rs.getTimestamp("completed_at") != null ? rs.getTimestamp("completed_at").toLocalDateTime() : null
+    );
+
+    private static final String BASE_SELECT = """
+        SELECT w.*,
+               COALESCE(r.good_qty, 0) AS good_qty,
+               COALESCE(r.defect_qty, 0) AS defect_qty
+        FROM work_orders w
+        LEFT JOIN production_results r ON w.id = r.work_order_id
+        """;
 
     public long insert(String no, String type, int target) {
         return jdbc.queryForObject(
                 "INSERT INTO work_orders (work_order_no, product_type, target_qty) VALUES (?, ?, ?) RETURNING id",
                 Long.class, no, type, target);
     }
-    public Optional<WorkOrder> findById(long id) {
-        return jdbc.query("SELECT * FROM work_orders WHERE id = ?", MAPPER, id).stream().findFirst();
+    public Optional<WorkOrder> findById(Long id) {
+        String sql = """
+            SELECT w.*,
+                   COALESCE(r.good_qty, 0) AS good_qty,
+                   COALESCE(r.defect_qty, 0) AS defect_qty
+            FROM work_orders w
+            LEFT JOIN production_results r ON w.id = r.work_order_id
+            WHERE w.id = ?
+            """;
+        return jdbc.query(sql, MAPPER, id).stream().findFirst();
     }
     public Optional<WorkOrder> findByIdForUpdate(long id) {
-        return jdbc.query("SELECT * FROM work_orders WHERE id = ? FOR UPDATE", MAPPER, id).stream().findFirst();
+        String sql = """
+            SELECT w.*,
+                   COALESCE(r.good_qty, 0) AS good_qty,
+                   COALESCE(r.defect_qty, 0) AS defect_qty
+            FROM work_orders w
+            LEFT JOIN production_results r ON w.id = r.work_order_id
+            WHERE w.id = ?
+            FOR UPDATE OF w
+            """;
+        return jdbc.query(sql, MAPPER, id).stream().findFirst();
     }
     public List<WorkOrder> findAll() {
-        return jdbc.query("SELECT * FROM work_orders ORDER BY id DESC", MAPPER);
+        return jdbc.query(BASE_SELECT + " ORDER BY w.id DESC", MAPPER);
     }
     public void markRunning(long id) {
         jdbc.update("UPDATE work_orders SET status = 'RUNNING', started_at = COALESCE(started_at, now()), updated_at = now() WHERE id = ?", id);
