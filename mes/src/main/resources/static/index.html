@@ -86,8 +86,14 @@
 
     <!-- 하단: 작업지시 통제 테이블 -->
     <section class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-800">
+        <div class="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
             <h2 class="text-lg font-semibold text-white">작업지시 실시간 통제 목록</h2>
+
+            <!-- 여기 오른쪽 끝에 가상 PLC 자동 가동 스위치 배치! -->
+            <button id="simToggleBtn" onclick="toggleSimulator()"
+                    class="px-4 py-2 rounded-lg font-semibold text-sm bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 transition">
+                🤖 가상 PLC: OFF
+            </button>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
@@ -107,6 +113,70 @@
             </table>
         </div>
     </section>
+
+    <!-- 🚨 불량률 10% 초과 시 나타나는 긴급 관제 경고 배너 (평소엔 hidden) -->
+    <div id="defectAlertBanner" class="hidden mb-6 px-5 py-3.5 rounded-xl bg-rose-950/90 border border-rose-500 text-rose-200 flex items-center justify-between animate-pulse">
+        <div class="flex items-center gap-3">
+            <span class="text-xl">🚨</span>
+            <div>
+                <p class="font-bold text-sm text-rose-300">품질 이상 경고: 전체 공정 불량률 임계치(10.0%) 초과!</p>
+                <p id="defectAlertDetail" class="text-xs text-rose-400">현재 누적 불량률이 기준치를 넘었습니다. 하단 이벤트 로그에서 불량 발생 설비를 즉시 점검하세요.</p>
+            </div>
+        </div>
+        <span class="px-3 py-1 rounded-full text-xs font-extrabold bg-rose-600 text-white">CRITICAL</span>
+    </div>
+
+    <!-- 📊 실시간 생산 품질 KPI 요약 카드 3종 -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <!-- 카드 1: 총 생산 실적 (양품 + 불량) -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+            <p class="text-xs font-medium text-slate-400">총 누적 생산량 (양품 / 불량)</p>
+            <div class="mt-2 flex items-baseline gap-2">
+                <span id="kpiTotalQty" class="text-2xl font-bold text-white">0 EA</span>
+                <span id="kpiQtyBreakdown" class="text-xs text-slate-400">(양품 0 / 불량 0)</span>
+            </div>
+        </div>
+
+        <!-- 카드 2: 전체 공정 양품률 (Yield %) -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+            <p class="text-xs font-medium text-slate-400">전체 공정 양품률 (Yield %)</p>
+            <div class="mt-2 flex items-baseline gap-2">
+                <span id="kpiYieldRate" class="text-2xl font-bold text-emerald-400">100.0%</span>
+                <span class="text-xs text-slate-500">목표 기준 ≥ 90.0%</span>
+            </div>
+        </div>
+
+        <!-- 카드 3: 전체 공정 불량률 (Defect Rate %) -->
+        <div id="kpiDefectCard" class="bg-slate-900 border border-slate-800 rounded-xl p-5 transition-colors">
+            <div class="flex justify-between items-center">
+                <p class="text-xs font-medium text-slate-400">누적 불량률 (Defect Rate)</p>
+                <span id="kpiDefectBadge" class="px-2 py-0.5 text-[11px] font-bold rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800">정상</span>
+            </div>
+            <div class="mt-2 flex items-baseline gap-2">
+                <span id="kpiDefectRate" class="text-2xl font-bold text-slate-100">0.0%</span>
+                <span class="text-xs text-slate-500">경고 임계치: 10.0%</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 기본은 hidden 상태, 클릭 시 터미널 창 오픈 -->
+    <div id="eventLogPanel" class="hidden border-t border-slate-800 bg-black/80 p-4 font-mono text-xs max-h-64 overflow-y-auto space-y-1.5">
+        <div class="text-slate-500">이벤트 로그를 불러오는 중...</div>
+    </div>
+    <!-- 실시간 설비 이벤트 로그 (접이식 터미널 콘솔) -->
+    <div class="mt-6 bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <button onclick="toggleEventLog()"
+                class="w-full px-6 py-3 flex justify-between items-center bg-slate-900 hover:bg-slate-800/70 transition text-left">
+            <div class="flex items-center gap-2">
+                <span class="text-emerald-400 font-mono text-sm">>_</span>
+                <span class="text-sm font-semibold text-slate-200">실시간 설비 이벤트 로그 (Traceability Console)</span>
+                <span id="logCountBadge" class="px-2 py-0.5 text-xs rounded-full bg-slate-800 text-slate-400">최근 20건</span>
+            </div>
+            <span id="logToggleIcon" class="text-xs text-slate-400">▼ 펼치기</span>
+        </button>
+</div>
+
+
 
 </div>
 

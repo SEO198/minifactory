@@ -4,6 +4,8 @@ import com.mes.event.ProductionEventRequest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import java.sql.Timestamp;
+import java.util.List;
+import java.util.Map;
 
 @Repository
 public class EventDao {
@@ -51,5 +53,15 @@ public class EventDao {
 
         Integer currentGoodQty = jdbcTemplate.queryForObject(upsertSql, Integer.class, workOrderId, goodInc, defectInc);
         return currentGoodQty != null ? currentGoodQty : 0;
+    }
+
+    public List<Map<String, Object>> findRecentEvents(int limit) {
+        String sql = """
+        SELECT id, event_id, work_order_id, device_id, product_type, quantity, result, occurred_at
+        FROM production_events
+        ORDER BY id DESC
+        LIMIT ?
+        """;
+        return jdbcTemplate.queryForList(sql, limit);
     }
 }

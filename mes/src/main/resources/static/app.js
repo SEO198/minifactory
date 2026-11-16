@@ -17,6 +17,7 @@ async function loadWorkOrders() {
 
     updateDashboardStats(list);
     renderTable(list);
+    updateKpiSummary(list);
 }
 
 // 2. KPI 카드 및 Chart.js 도넛 그래프 갱신
@@ -190,3 +191,121 @@ async function controlOrder(id, action) {
 
 document.getElementById("refreshBtn").addEventListener("click", loadWorkOrders);
 loadWorkOrders();
+
+async function toggleSimulator() {
+    const res = await fetch('/api/simulator/toggle', { method: 'POST' });
+    const data = await res.json();
+    updateSimButton(data.enabled);
+}
+
+function updateSimButton(enabled) {
+    const btn = document.getElementById('simToggleBtn');
+    if (enabled) {
+        btn.textContent = '🤖 가상 PLC: ON (2초마다 자동생산)';
+        btn.className = 'px-4 py-2 rounded-lg font-semibold text-sm bg-emerald-600 text-white animate-pulse';
+    } else {
+        btn.textContent = '🤖 가상 PLC: OFF';
+        btn.className = 'px-4 py-2 rounded-lg font-semibold text-sm bg-slate-700 text-slate-300 hover:bg-slate-600 transition';
+    }
+}
+
+let isLogOpen = false;
+
+function toggleEventLog() {
+    isLogOpen = !isLogOpen;
+    const panel = document.getElementById('eventLogPanel');
+    const icon = document.getElementById('logToggleIcon');
+
+    if (isLogOpen) {
+        panel.classList.remove('hidden');
+        icon.textContent = '▲ 접기';
+        loadEventLogs();
+    } else {
+        panel.classList.add('hidden');
+        icon.textContent = '▼ 펼치기';
+    }
+}
+
+// 6. 이벤트 로그
+async function loadEventLogs() {
+    if (!isLogOpen) return; // 닫혀 있을 땐 불필요한 API 호출 생략!
+
+    const res = await fetch('/api/events');
+    const logs = await res.json();
+    const panel = document.getElementById('eventLogPanel');
+
+    if (logs.length === 0) {
+        panel.innerHTML = '<div class="text-slate-500">[SYSTEM] 아직 수신된 설비 이벤트가 없습니다.</div>';
+        return;
+    }
+
+    panel.innerHTML = logs.map(log => {
+        const isGood = log.result === 'GOOD';
+        const badgeColor = isGood ? 'text-emerald-400' : 'text-rose-400 font-bold';
+        const time = log.occurred_at ? log.occurred_at.replace('T', ' ').substring(0, 19) : '-';
+        return `
+            <div class="flex items-center gap-3 border-b border-slate-900 pb-1">
+                <span class="text-slate-500">[${time}]</span>
+                <span class="text-sky-400">[${log.device_id}]</span>
+                <span class="text-slate-300">WO-#${log.work_order_id} (${log.product_type})</span>
+                <span class="${badgeColor}">➔ ${log.result} (+${log.quantity})</span>
+                <span class="text-slate-600 ml-auto">ID: ${log.event_id}</span>
+            </div>
+        `;
+    }).join('');
+}
+
+// 7. KPI 실시간 계산 & 10% 임계치 알람 로직
+function updateKpiSummary(orders) {
+    // 1. 전체 작업지시의 양품(goodQty) 및 불량(defectQty) 합산
+    let totalGood = 0;
+    let totalDefect = 0;
+
+    orders.forEach(o => {
+        totalGood += (o.goodQty || 0);
+        totalDefect += (o.defectQty || 0);
+    });
+
+    const totalProduced = totalGood + totalDefect;
+
+    // 2. 양품률 & 불량률 계산 (생산량이 0일 때 0 나누기 방지!)
+    const yieldRate = totalProduced === 0 ? 100.0 : (totalGood / totalProduced) * 100;
+    const defectRate = totalProduced === 0 ? 0.0 : (totalDefect / totalProduced) * 100;
+
+    // 3. 숫자 바인딩
+    document.getElementById('kpiTotalQty').textContent = `${totalProduced.toLocaleString()} EA`;
+    document.getElementById('kpiQtyBreakdown').textContent = `(양품 ${totalGood.toLocaleString()} / 불량 ${totalDefect.toLocaleString()})`;
+    document.getElementById('kpiYieldRate').textContent = `${yieldRate.toFixed(1)}%`;
+    document.getElementById('kpiDefectRate').textContent = `${defectRate.toFixed(1)}%`;
+
+    // 4. 불량률 10.0% 초과 시 경고 알람 & 카드 강조 처리 (최소 모수 5개 이상일 때 발동)
+    const isWarning = totalProduced >= 5 && defectRate > 10.0;
+    const alertBanner = document.getElementById('defectAlertBanner');
+    const defectCard = document.getElementById('kpiDefectCard');
+    const defectRateEl = document.getElementById('kpiDefectRate');
+    const defectBadge = document.getElementById('kpiDefectBadge');
+
+    if (isWarning) {
+        alertBanner.classList.remove('hidden');
+        document.getElementById('defectAlertDetail').textContent =
+            `현재 누적 불량률 ${defectRate.toFixed(1)}% (불량 ${totalDefect}EA / 총 ${totalProduced}EA) — 하단 로그 콘솔에서 불량 발생 원인을 확인하세요.`;
+
+        defectCard.className = 'bg-rose-950/50 border border-rose-500 rounded-xl p-5 transition-colors';
+        defectRateEl.className = 'text-2xl font-bold text-rose-400';
+        defectBadge.textContent = '⚠️ 경고 (>10%)';
+        defectBadge.className = 'px-2 py-0.5 text-[11px] font-bold rounded-full bg-rose-600 text-white';
+    } else {
+        alertBanner.classList.add('hidden');
+        defectCard.className = 'bg-slate-900 border border-slate-800 rounded-xl p-5 transition-colors';
+        defectRateEl.className = 'text-2xl font-bold text-slate-100';
+        defectBadge.textContent = '정상';
+        defectBadge.className = 'px-2 py-0.5 text-[11px] font-bold rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800';
+    }
+}
+
+setInterval(() => {
+    loadWorkOrders();
+    loadEventLogs(); // 콘솔이 열려 있을 때만 1.5초마다 로그도 실시간 갱신!
+}, 1500);
+
+fetch('/api/simulator/status').then(r => r.json()).then(d => updateSimButton(d.enabled));

@@ -8,6 +8,9 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Map;
+
 @Service
 public class EventService {
 
@@ -51,5 +54,9 @@ public class EventService {
         if (currentGoodQty >= workOrder.targetQty()) {
             workOrderDao.markTargetReached(req.workOrderId());
         }
+    }
+
+    public List<Map<String, Object>> getRecentEvents(int limit) {
+        return eventDao.findRecentEvents(limit);
     }
 }
