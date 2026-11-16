@@ -1,0 +1,146 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: #0f172a;
+    color: #e2e8f0;
+    padding: 32px 16px;
+}
+
+.container {
+    max-width: 960px;
+    margin: 0 auto;
+}
+
+header {
+    margin-bottom: 24px;
+}
+
+header h1 {
+    font-size: 1.75rem;
+    color: #38bdf8;
+    margin-bottom: 4px;
+}
+
+.subtitle {
+    color: #94a3b8;
+    font-size: 0.95rem;
+}
+
+.card {
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.card h2 {
+    font-size: 1.1rem;
+    margin-bottom: 14px;
+    color: #f8fafc;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
+.card-header h2 {
+    margin-bottom: 0;
+}
+
+.form-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+input {
+    flex: 1;
+    min-width: 160px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid #475569;
+    background-color: #0f172a;
+    color: #f8fafc;
+    font-size: 0.95rem;
+}
+
+input:focus {
+    outline: none;
+    border-color: #38bdf8;
+}
+
+.btn {
+    padding: 8px 14px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.85rem;
+    background-color: #334155;
+    color: #f8fafc;
+    transition: opacity 0.15s;
+}
+
+.btn:hover {
+    opacity: 0.85;
+}
+
+.btn.primary {
+    background-color: #0284c7;
+}
+
+.btn.start {
+    background-color: #16a34a;
+}
+
+.btn.stop {
+    background-color: #d97706;
+}
+
+.btn.complete {
+    background-color: #4f46e5;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    text-align: left;
+    padding: 12px 10px;
+    border-bottom: 1px solid #334155;
+    font-size: 0.92rem;
+}
+
+th {
+    color: #94a3b8;
+    font-weight: 600;
+}
+
+.badge {
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.badge.READY { background-color: #334155; color: #cbd5e1; }
+.badge.RUNNING { background-color: #15803d; color: #dcfce7; }
+.badge.STOPPED { background-color: #b45309; color: #fef3c7; }
+.badge.TARGET_REACHED { background-color: #0369a1; color: #e0f2fe; }
+.badge.COMPLETED { background-color: #4338ca; color: #e0e7ff; }
+
+.actions {
+    display: flex;
+    gap: 6px;
+}
